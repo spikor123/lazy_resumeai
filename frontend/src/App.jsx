@@ -122,6 +122,11 @@ function App() {
       return;
     }
 
+    if (!user) {
+      setError("Please sign in with Google to use the AI features.");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("file", file);
     formData.append("target_role", targetRole);
@@ -133,10 +138,12 @@ function App() {
     setResumeText("");
 
     try {
+      const idToken = await user.getIdToken();
       const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
       const response = await axios.post(`${API_URL}/api/review`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${idToken}`
         }
       });
       setAiFeedback(response.data.ai_feedback);

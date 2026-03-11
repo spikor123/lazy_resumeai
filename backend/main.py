@@ -4,9 +4,11 @@ import os
 import google.generativeai as genai
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+from google.oauth2 import id_token
+from google.auth.transport import requests
 
 # Load Environment Variables (.env file)
 load_dotenv()
@@ -17,18 +19,36 @@ if not GEMINI_API_KEY:
 
 # Configure Google Gemini
 genai.configure(api_key=GEMINI_API_KEY)
-# Using Gemini 2.5 Flash for fast text processing
 model = genai.GenerativeModel('gemini-2.5-flash')
+
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "lazyresume-ai")
 
 app = FastAPI(title="AI Resume Review API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=[
+        "http://localhost:5173", 
+        "https://lazyresume.vercel.app", # Replace with your actual Vercel URL
+        "https://lazyresume-ai.firebaseapp.com"
+    ], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+async def get_current_user(authorization: Optional[str] = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid authentication token")
+    
+    token = authorization.split("Bearer ")[1]
+    try:
+        # This verifies the token is a valid Firebase ID token and was issued for your project
+        id_info = id_token.verify_oauth2_token(token, requests.Request(), FIREBASE_PROJECT_ID)
+        return id_info
+    except Exception as e:
+        print(f"Token validation error: {e}")
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
 def extract_text_from_pdf(file_contents: bytes) -> str:
     try:
@@ -72,7 +92,8 @@ def review_resume_with_ai(resume_text: str, target_role: str, user_notes: str) -
 async def review_resume(
     file: UploadFile = File(...),
     target_role: str = Form("General SWE"),
-    notes: str = Form("Make it sound professional.")
+    notes: str = Form("Make it sound professional."),
+    user: dict = Depends(get_current_user)
 ) -> Dict[str, Any]:
     
     if not file.filename:
