@@ -29,7 +29,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173", 
-        "https://lazyresume.vercel.app", # Replace with your actual Vercel URL
+        "https://lazy-resumeai.vercel.app",
+        "https://lazy-resumeai.onrender.com",
         "https://lazyresume-ai.firebaseapp.com"
     ], 
     allow_credentials=True,
