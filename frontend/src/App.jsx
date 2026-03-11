@@ -138,8 +138,12 @@ function App() {
     setResumeText("");
 
     try {
+      const idToken = await user.getIdToken();
       const rawApiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
-      const API_URL = rawApiUrl.replace(/\/$/, ""); // Remove trailing slash if it exists
+      const API_URL = rawApiUrl.replace(/\/$/, ""); 
+      
+      console.log(`Sending request to: ${API_URL}/api/review`);
+
       const response = await axios.post(`${API_URL}/api/review`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -148,6 +152,7 @@ function App() {
       });
       setAiFeedback(response.data.ai_feedback);
       setResumeText(response.data.extracted_text);
+
       
       const newEntry = {
         id: Date.now(),
