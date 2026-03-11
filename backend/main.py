@@ -7,8 +7,8 @@ from PyPDF2 import PdfReader
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Any, Optional
-from google.oauth2 import id_token
-from google.auth.transport import requests
+import firebase_admin
+from firebase_admin import auth, credentials
 
 # Load Environment Variables (.env file)
 load_dotenv()
@@ -23,16 +23,15 @@ model = genai.GenerativeModel('gemini-2.5-flash')
 
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "lazyresume-ai")
 
+# Initialize Firebase Admin (No service account needed for token verification if project ID is set)
+if not firebase_admin._apps:
+    firebase_admin.initialize_app()
+
 app = FastAPI(title="AI Resume Review API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173", 
-        "https://lazy-resumeai.vercel.app",
-        "https://lazy-resumeai.onrender.com",
-        "https://lazyresume-ai.firebaseapp.com"
-    ], 
+    allow_origins=["*"], # Temporarily allow all for debugging
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -44,12 +43,12 @@ async def get_current_user(authorization: Optional[str] = Header(None)):
     
     token = authorization.split("Bearer ")[1]
     try:
-        # This verifies the token is a valid Firebase ID token and was issued for your project
-        id_info = id_token.verify_oauth2_token(token, requests.Request(), FIREBASE_PROJECT_ID)
-        return id_info
+        # Using firebase-admin to verify the token
+        decoded_token = auth.verify_id_token(token)
+        return decoded_token
     except Exception as e:
         print(f"Token validation error: {e}")
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(status_code=401, detail=f"Unauthorized: {str(e)}")
 
 def extract_text_from_pdf(file_contents: bytes) -> str:
     try:
