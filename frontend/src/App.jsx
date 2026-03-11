@@ -138,8 +138,8 @@ function App() {
     setResumeText("");
 
     try {
-      const idToken = await user.getIdToken();
-      const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+      const rawApiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+      const API_URL = rawApiUrl.replace(/\/$/, ""); // Remove trailing slash if it exists
       const response = await axios.post(`${API_URL}/api/review`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
