@@ -70,7 +70,7 @@ function App() {
       await signInWithPopup(auth, googleProvider);
     } catch (err) {
       console.error(err);
-      setError("Failed to sign in with Google.");
+      setError(`Auth Error: ${err.message}`);
     }
   };
 
