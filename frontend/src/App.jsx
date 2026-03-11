@@ -133,7 +133,8 @@ function App() {
     setResumeText("");
 
     try {
-      const response = await axios.post("http://127.0.0.1:8000/api/review", formData, {
+      const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+      const response = await axios.post(`${API_URL}/api/review`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
